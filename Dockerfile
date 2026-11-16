@@ -3,7 +3,6 @@ FROM python:3.10
 
 WORKDIR /app
 
-# Install FFmpeg and FFprobe
 RUN apt-get update && \
     apt-get install -y --no-install-recommends ffmpeg && \
     rm -rf /var/lib/apt/lists/*
