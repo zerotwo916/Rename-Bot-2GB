@@ -1,3 +1,4 @@
+
 import motor.motor_asyncio
 from config import Config
 from .utils import send_log
@@ -45,7 +46,10 @@ class Database:
 
     # Thumbnail
     async def set_thumbnail(self, id, file_id):
-        await self.col.update_one({'_id': int(id)}, {'$set': {'file_id': file_id}})
+        await self.col.update_one(
+            {'_id': int(id)},
+            {'$set': {'file_id': file_id}}
+        )
 
     async def get_thumbnail(self, id):
         user = await self.col.find_one({'_id': int(id)}) or {}
@@ -53,7 +57,10 @@ class Database:
 
     # Caption
     async def set_caption(self, id, caption):
-        await self.col.update_one({'_id': int(id)}, {'$set': {'caption': caption}})
+        await self.col.update_one(
+            {'_id': int(id)},
+            {'$set': {'caption': caption}}
+        )
 
     async def get_caption(self, id):
         user = await self.col.find_one({'_id': int(id)}) or {}
@@ -61,7 +68,10 @@ class Database:
 
     # Prefix
     async def set_prefix(self, id, prefix):
-        await self.col.update_one({'_id': int(id)}, {'$set': {'prefix': prefix}})
+        await self.col.update_one(
+            {'_id': int(id)},
+            {'$set': {'prefix': prefix}}
+        )
 
     async def get_prefix(self, id):
         user = await self.col.find_one({'_id': int(id)}) or {}
@@ -69,13 +79,16 @@ class Database:
 
     # Suffix
     async def set_suffix(self, id, suffix):
-        await self.col.update_one({'_id': int(id)}, {'$set': {'suffix': suffix}})
+        await self.col.update_one(
+            {'_id': int(id)},
+            {'$set': {'suffix': suffix}}
+        )
 
     async def get_suffix(self, id):
         user = await self.col.find_one({'_id': int(id)}) or {}
         return user.get('suffix', None)
 
-    # Metadata enabled/disabled (kept for compatibility with the old bot)
+    # Metadata enabled/disabled
     async def set_metadata(self, id, bool_meta):
         await self.col.update_one(
             {'_id': int(id)},
@@ -87,7 +100,7 @@ class Database:
         user = await self.col.find_one({'_id': int(id)}) or {}
         return user.get('metadata', False)
 
-    # Old single metadata text methods are retained so older code/data remains compatible.
+    # Old metadata text methods
     async def set_metadata_code(self, id, metadata_code):
         await self.col.update_one(
             {'_id': int(id)},
@@ -99,7 +112,7 @@ class Database:
         user = await self.col.find_one({'_id': int(id)}) or {}
         return user.get('metadata_code', None)
 
-    # New independent metadata settings.
+    # Independent metadata settings
     async def set_metadata_mode(self, id, mode):
         await self.col.update_one(
             {'_id': int(id)},
@@ -112,8 +125,8 @@ class Database:
         return user.get('metadata_mode')
 
     async def set_metadata_field(self, id, field, value):
-        # An empty string means "explicitly clear this field".
-        # A missing key means "leave the incoming file's original value alone".
+        # Empty string explicitly clears a metadata field.
+        # Missing key leaves the original value unchanged.
         await self.col.update_one(
             {'_id': int(id)},
             {'$set': {f'metadata_fields.{field}': value}},
@@ -121,8 +134,27 @@ class Database:
         )
 
     async def get_metadata_fields(self, id):
-        user = await self.col.find_one({'_id': int(id)}) or {}
+        user = await self.col.find_one({'_id': int(id)} ) or {}
         return user.get('metadata_fields', {}) or {}
+
+    # Saved output mode
+    async def set_output_mode(self, id, mode):
+        await self.col.update_one(
+            {'_id': int(id)},
+            {'$set': {'output_mode': mode}},
+            upsert=True
+        )
+
+    async def get_output_mode(self, id):
+        user = await self.col.find_one({'_id': int(id)}) or {}
+        return user.get('output_mode')
+
+    async def clear_output_mode(self, id):
+        await self.col.update_one(
+            {'_id': int(id)},
+            {'$unset': {'output_mode': ''}},
+            upsert=True
+        )
 
 
 jishubotz = Database(Config.DATABASE_URL, Config.DATABASE_NAME)
