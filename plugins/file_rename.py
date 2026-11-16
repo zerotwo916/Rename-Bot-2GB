@@ -9,8 +9,8 @@ from hachoir.parser import createParser
 from helper.utils import progress_for_pyrogram, convert, humanbytes, add_prefix_suffix
 from helper.database import jishubotz
 from asyncio import sleep
-from types import SimpleNamespace
 from PIL import Image
+from types import SimpleNamespace
 import os, time, re, random, asyncio
 
 
@@ -59,9 +59,15 @@ async def refunc(client, message):
 
         msg = await client.get_messages(message.chat.id, reply_message.id)
         file = msg.reply_to_message
+
+        if not file:
+            return await message.reply_text(
+                "**Could not find the original file. Please send it again.**"
+            )
+
         media = getattr(file, file.media.value)
 
-        if not "." in new_name:
+        if "." not in new_name:
             if "." in media.file_name:
                 extn = media.file_name.rsplit('.', 1)[-1]
             else:
@@ -71,10 +77,10 @@ async def refunc(client, message):
 
         await reply_message.delete()
 
-        # Check the user's saved output preference.
+        # Read the user's saved output mode.
         saved_mode = await jishubotz.get_output_mode(message.from_user.id)
 
-        # Automatically use the saved Document mode.
+        # Automatically send as Document.
         if saved_mode == "document":
             status = await message.reply(
                 text=f"**Select The Output File Type**\n\n**File Name :-** `{new_name}`",
@@ -84,14 +90,14 @@ async def refunc(client, message):
             automatic_update = SimpleNamespace(
                 message=status,
                 data="upload_document",
-                from_user=message.from_user
+                from_user=message.from_user,
+                original_file=file
             )
 
             await doc(client, automatic_update)
             return
 
-        # Automatically use the saved Video mode for video/document files.
-        # Audio files retain their original Audio selection.
+        # Automatically send video/document files as Video.
         if saved_mode == "video" and file.media in [
             MessageMediaType.VIDEO,
             MessageMediaType.DOCUMENT
@@ -104,13 +110,14 @@ async def refunc(client, message):
             automatic_update = SimpleNamespace(
                 message=status,
                 data="upload_video",
-                from_user=message.from_user
+                from_user=message.from_user,
+                original_file=file
             )
 
             await doc(client, automatic_update)
             return
 
-        # No saved mode: show the original output selection buttons.
+        # No saved mode: show the original selection buttons.
         button = [
             [InlineKeyboardButton("📁 Document", callback_data="upload_document")]
         ]
@@ -151,10 +158,26 @@ async def doc(bot, update):
             f"**Contact My Creator :** @CallAdminRobot\n\n**Error :** `{e}`"
         )
 
-    file_path = os.path.join("downloads", str(update.message.chat.id), new_filename)
+    file_path = os.path.join(
+        "downloads",
+        str(update.from_user.id),
+        new_filename
+    )
+
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
-    file = update.message.reply_to_message
+    # IMPORTANT: Automatic mode supplies original_file directly.
+    # Normal button mode continues using reply_to_message.
+    file = getattr(update, "original_file", None)
+
+    if file is None:
+        file = update.message.reply_to_message
+
+    if file is None:
+        return await update.message.edit(
+            "**Download error:** Original file message was not found. Please send the file again."
+        )
+
     ms = await update.message.edit("🚀 Try To Download... ⚡")
 
     try:
@@ -173,7 +196,7 @@ async def doc(bot, update):
     except Exception as e:
         return await ms.edit(f"**Download error:** `{e}`")
 
-    # Existing metadata system remains unchanged.
+    # Existing metadata processing.
     metadata_file_path = None
     metadata_enabled = await jishubotz.get_metadata(update.message.chat.id)
 
@@ -182,8 +205,12 @@ async def doc(bot, update):
 
         if metadata_fields:
             metadata_file_path = os.path.join("Metadata", new_filename)
+
             metadata_file_path = await add_metadata(
-                file_path, metadata_file_path, metadata_fields, ms
+                file_path,
+                metadata_file_path,
+                metadata_fields,
+                ms
             )
 
     else:
@@ -309,4 +336,4 @@ async def doc(bot, update):
                 os.remove(cleanup_path)
             except OSError:
                 pass
-            
+                
