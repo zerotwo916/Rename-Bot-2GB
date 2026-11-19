@@ -14,6 +14,16 @@ from types import SimpleNamespace
 import os, time, re, random, asyncio
 
 
+def limit_filename_length(filename, max_length=70):
+    """Keep the extension and limit the complete filename to max_length characters."""
+    if len(filename) <= max_length:
+        return filename
+
+    stem, extension = os.path.splitext(filename)
+    stem_limit = max(0, max_length - len(extension))
+    return stem[:stem_limit].rstrip() + extension
+
+
 @Client.on_message(filters.private & (filters.document | filters.audio | filters.video))
 async def rename_start(client, message):
     file = getattr(message, message.media.value)
@@ -147,10 +157,14 @@ async def doc(bot, update):
     suffix = await jishubotz.get_suffix(update.message.chat.id)
 
     new_name = update.message.text
-    new_filename_ = new_name.split(":-", 1)[1]
+    new_filename_ = new_name.split(":-", 1)[1].strip()
+    # Keep the complete requested name for the caption, even if the actual
+    # uploaded filename must be shortened to Telegram's 70-character limit.
+    caption_filename = new_filename_
 
     try:
         new_filename = add_prefix_suffix(new_filename_, prefix, suffix)
+        new_filename = limit_filename_length(new_filename, 70)
 
     except Exception as e:
         return await update.message.edit(
@@ -247,7 +261,7 @@ async def doc(bot, update):
     if c_caption:
         try:
             caption = c_caption.format(
-                filename=new_filename,
+                filename=caption_filename,
                 filesize=humanbytes(media.file_size),
                 duration=convert(duration)
             )
@@ -258,7 +272,7 @@ async def doc(bot, update):
             )
 
     else:
-        caption = f"**{new_filename}**"
+        caption = f"**{caption_filename}**"
 
     if media.thumbs or c_thumb:
         if c_thumb:
