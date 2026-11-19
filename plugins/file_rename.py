@@ -14,7 +14,7 @@ from types import SimpleNamespace
 import os, time, re, random, asyncio
 
 
-def limit_filename_length(filename, max_length=70):
+def limit_filename_length(filename, max_length=65):
     """Keep the extension and limit the complete filename to max_length characters."""
     if len(filename) <= max_length:
         return filename
@@ -164,7 +164,7 @@ async def doc(bot, update):
 
     try:
         new_filename = add_prefix_suffix(new_filename_, prefix, suffix)
-        new_filename = limit_filename_length(new_filename, 70)
+        new_filename = limit_filename_length(new_filename, 65)
 
     except Exception as e:
         return await update.message.edit(
