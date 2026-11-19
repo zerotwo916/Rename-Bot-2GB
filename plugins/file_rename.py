@@ -14,7 +14,7 @@ from types import SimpleNamespace
 import os, time, re, random, asyncio
 
 
-def limit_filename_length(filename, max_length=65):
+def limit_filename_length(filename, max_length=60):
     """Keep the extension and limit the complete filename to max_length characters."""
     if len(filename) <= max_length:
         return filename
@@ -159,12 +159,12 @@ async def doc(bot, update):
     new_name = update.message.text
     new_filename_ = new_name.split(":-", 1)[1].strip()
     # Keep the complete requested name for the caption, even if the actual
-    # uploaded filename must be shortened to Telegram's 70-character limit.
+    # uploaded filename must be shortened to the 60-character limit.
     caption_filename = new_filename_
 
     try:
         new_filename = add_prefix_suffix(new_filename_, prefix, suffix)
-        new_filename = limit_filename_length(new_filename, 65)
+        new_filename = limit_filename_length(new_filename, 60)
 
     except Exception as e:
         return await update.message.edit(
