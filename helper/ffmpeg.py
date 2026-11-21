@@ -140,13 +140,12 @@ async def add_metadata(input_path, output_path, metadata_fields, ms):
 
             value = metadata_fields[field]
             if codec_type in ("audio", "subtitle"):
-                language_label = _language_label(stream)
-                if value:
-                    # Custom text goes before the original language label.
-                    stream_title = f"{value} - {language_label}" if language_label else value
-                else:
-                    # Delete only the custom text; retain just the language label.
-                    stream_title = language_label
+                # Keep the custom track title separate from the language tag.
+                # Media players display the language tag themselves; adding it
+                # here as well causes labels such as "[Japanese]" to appear twice.
+                # An empty value clears only the custom title and preserves the
+                # original stream language metadata copied by -map_metadata 0.
+                stream_title = value or ""
             else:
                 # Deleting video metadata clears the track title completely.
                 stream_title = value or ""
